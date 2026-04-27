@@ -43,7 +43,21 @@ Read `$ARGUMENTS` and extract:
 Set `$TICKET` = ticket ID if provided, or the generated slug.
 Set `$SPEC_DIR` = `specs/$TICKET/`
 
-**3. Check for existing spec**
+**3. Load MCPs from giveme.env**
+
+Check for `giveme.env` in the project root.
+- If found → detect which MCPs are configured (check key presence, never read values):
+  - Jira keys present (`GIVEME_JIRA_URL`, `GIVEME_JIRA_EMAIL`, `GIVEME_JIRA_API_TOKEN`) → activate Jira MCP for Phase 1 (specify)
+  - GitHub keys present (`GIVEME_GITHUB_TOKEN`, `GIVEME_GITHUB_OWNER`, `GIVEME_GITHUB_REPO`) → activate GitHub MCP for Phase 5 (PR) and Phase 6 (issue)
+- If not found → run in plain text mode. Log: `[MCP] No giveme.env found — plain text mode`
+
+Read `.specify/orchestrator.md` `## MCPs active` section to confirm which MCPs the project expects.
+If a required MCP is listed in orchestrator.md but not configured in giveme.env → warn but continue:
+*"⚠️ Jira MCP not configured. Running without ticket enrichment."*
+
+Log: `[MCP] Active: [list of active MCPs or "none"]`
+
+**4. Check for existing spec**
 If `$SPEC_DIR` already exists → say:
 *"Found an existing spec for $TICKET. Do you want to resume from where it stopped, or start over?"*
 Wait for answer. This is the only mid-pipeline question allowed.
@@ -70,7 +84,17 @@ TICKET: $TICKET
 GUARDRAILS: contents of .specify/playbook/ (all files)
 CONSTITUTION: contents of .specify/constitution.md
 TEMPLATE: specs/ structure from orchestrator.md
+JIRA_AVAILABLE: [true if Jira MCP is active, false otherwise]
 ```
+
+If Jira MCP is active and `--ticket` was provided:
+- Fetch the ticket from Jira before invoking the specify agent
+- Append the ticket title, description, and acceptance criteria to the INTENT context
+- Log: `[JIRA] Ticket $TICKET fetched — enriching intent`
+
+If Jira MCP is not active or no ticket was provided:
+- Use the plain text INTENT as-is
+- Log: `[JIRA] Not configured or no ticket — using plain text intent`
 
 The specify agent must produce `specs/$TICKET/spec.md` with these sections:
 - `## Context` — why this feature is needed
@@ -187,7 +211,24 @@ Log on success: `[VERIFY COMPLIANT] attempt [N]`
 
 ## Phase 5 — Open Pull Request
 
-Create a git branch and open a PR:
+**If GitHub MCP is active:**
+Use the GitHub MCP to create the branch, push changes, and open the PR automatically.
+Log: `[GITHUB] Opening PR via GitHub MCP`
+
+**If GitHub MCP is not active:**
+Print branch instructions for the dev to open the PR manually:
+
+```
+✅ Code is compliant. GitHub MCP not configured.
+
+To open the PR manually:
+  git checkout -b giveme/$TICKET
+  git add .
+  git commit -m "[derived from intent]"
+  git push origin giveme/$TICKET
+```
+
+Then print the full PR body below so the dev can paste it.
 
 **Branch name:** `giveme/$TICKET`
 
@@ -232,7 +273,10 @@ After opening the PR, say to the developer:
 If max retries reached without COMPLIANT:
 
 1. Do NOT open a PR.
-2. Open a GitHub issue:
+2. If GitHub MCP is active → open a GitHub issue automatically.
+   If GitHub MCP is not active → print the issue content to the terminal.
+
+Open or print a GitHub issue:
 
 **Issue title:** `giveme: pipeline failed for $TICKET`
 

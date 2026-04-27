@@ -1,6 +1,6 @@
 ---
 name: init
-description: Detects the stack, downloads community guardrails, and sets up .specify/ in the current repo. Use when starting giveme in a new project.
+description: Detects the stack, downloads community guardrails, sets up .specify/ and configures MCPs from giveme.env. Use when starting giveme in a new project.
 ---
 
 You are setting up giveme in a repository. Your job is to detect what
@@ -16,6 +16,7 @@ Be fast. Be clear. Never ask something you can figure out by reading the repo.
 - Read before asking. Check files first, ask only what you cannot detect.
 - One confirmation at the end — not a question for every step.
 - Never overwrite existing files in `.specify/` without explicit confirmation.
+- Never read actual secret values from `giveme.env` — only check which keys are present.
 - If something is already configured, say so and skip it.
 - Always finish with a clear status — what was created, what was skipped, what needs attention.
 
@@ -42,7 +43,21 @@ Read these files if they exist:
 If detected → note the stack and continue silently.
 If not detected → ask: *"I couldn't detect your stack automatically. What are you building with? (e.g. NestJS, Spring Boot, Go, Python)"*
 
-**3. Check for existing standards**
+**3. Check for giveme.env and MCPs**
+
+Look for `giveme.env` in the project root.
+- If found → read it and detect which MCPs are configured:
+  - `GIVEME_JIRA_URL`, `GIVEME_JIRA_EMAIL`, `GIVEME_JIRA_API_TOKEN` all present → Jira MCP available
+  - `GIVEME_GITHUB_TOKEN`, `GIVEME_GITHUB_OWNER`, `GIVEME_GITHUB_REPO` all present → GitHub MCP available
+  - Any other `GIVEME_*` prefix → note as custom MCP
+- If not found → note it. Create a `giveme.env` template with all secrets as placeholders.
+
+For each detected MCP, verify its `mcp.json` exists in `mcps/<service>/`.
+If `giveme.env` has Jira vars but `mcps/jira/mcp.json` is missing → flag as misconfigured.
+
+Never read actual secret values — only check which keys are present.
+
+**4. Check for existing standards**
 Look for any of these:
 - `.github/copilot-instructions.md`
 - `CLAUDE.md`
@@ -51,11 +66,6 @@ Look for any of these:
 
 If found → say: *"I found existing standards. I'll import them into giveme's format."*
 Note the location for Phase 2.
-
-**4. Check for Jira or ticket system**
-Look for `.jira`, `jira.config.json`, or any MCP config referencing Jira.
-- If found → note it, Jira integration is available.
-- If not found → note it, `/giveme:run` will accept plain text intents without a ticket.
 
 ---
 
@@ -70,13 +80,17 @@ Show a single confirmation message before creating any files:
 *Stack detected: [stack]*
 *Community guardrails: [N] rules for [stack]*
 *Existing standards found: [yes — will import / no]*
-*Jira integration: [available / not configured — plain text mode]*
+
+*MCPs detected from giveme.env:*
+- Jira: [✅ configured / ⚠️ missing mcp.json / ❌ not configured — plain text fallback]
+- GitHub: [✅ configured / ⚠️ missing mcp.json / ❌ not configured — PR opened manually]
 
 *I'll create:*
 - `.specify/constitution.md`
 - `.specify/playbook/001-[topic].md` … `NNN-[topic].md`
 - `.specify/orchestrator.md`
 - `.claude/CLAUDE.md` *(if not already present)*
+- `giveme.env` *(secrets template — fill in your credentials)*  ← only if not already present
 
 *Shall I continue? (yes / no)"*
 
@@ -123,6 +137,9 @@ If no existing standards → generate a minimal constitution:
 ## Active playbook
 [list of guardrail files in .specify/playbook/]
 
+## MCPs configured
+[list of MCPs detected from giveme.env, or "none — running in plain text mode"]
+
 ## Exceptions
 (none — add entries here when a guardrail is intentionally violated)
 ```
@@ -140,11 +157,15 @@ If a guardrail already exists in `.specify/playbook/`, skip it — never overwri
 ## Stack
 [detected stack]
 
+## MCPs active
+[list of MCPs from giveme.env that are fully configured, or "none"]
+
 ## Pipeline
 
 ### Phase 1 — Specify
 - agent: specify
 - input: $INTENT $TICKET
+- mcp: jira (if configured — enrich intent with ticket data)
 - output: specs/$TICKET/spec.md
 - advance-when: spec.md exists and contains ## Scope, ## Acceptance criteria
 
@@ -165,13 +186,35 @@ If a guardrail already exists in `.specify/playbook/`, skip it — never overwri
 - context: fresh session — no memory of previous phases
 - input: src/ modified + cited guardrails
 - output: COMPLIANT or REJECTED with reason
-- on-compliant: open PR linking spec.md and plan.md
+- on-compliant: open PR via github MCP (if configured) or print branch instructions
 - on-rejected: return to Phase 3 with feedback
 - max-retries: 3
 
 ## Retry policy
-on-max-retries: open GitHub issue with pipeline state and last rejection reason
+on-max-retries: open GitHub issue via github MCP (if configured) or print failure summary
 ```
+
+### giveme.env (template — only if not already present)
+
+```bash
+# giveme secrets — DO NOT COMMIT this file
+# Fill in your credentials below and run /giveme:init again
+
+# ─── Jira ───────────────────────────────
+# Get your API token at: https://id.atlassian.com/manage-profile/security/api-tokens
+GIVEME_JIRA_URL=https://your-org.atlassian.net
+GIVEME_JIRA_EMAIL=you@example.com
+GIVEME_JIRA_API_TOKEN=your-token-here
+
+# ─── GitHub ─────────────────────────────
+# Get your token at: https://github.com/settings/tokens
+# Required scopes: repo, pull_requests
+GIVEME_GITHUB_TOKEN=your-token-here
+GIVEME_GITHUB_OWNER=your-org-or-username
+GIVEME_GITHUB_REPO=your-repo-name
+```
+
+Always add `giveme.env` to `.gitignore` if not already there.
 
 ### .claude/CLAUDE.md
 
@@ -186,7 +229,7 @@ This project uses giveme for spec-driven, guardrail-enforced development.
 
 ```bash
 /giveme:run "your intent here"
-# or with a ticket
+# or with a Jira ticket (requires Jira MCP configured in giveme.env)
 /giveme:run "your intent here" --ticket TICKET-123
 ```
 
@@ -202,11 +245,22 @@ This project uses giveme for spec-driven, guardrail-enforced development.
 /giveme:check
 ```
 
+## How to add a new MCP integration
+
+```bash
+/giveme:mcp-add linear
+```
+
 ## Standards location
 
 All guardrails live in `.specify/playbook/`.
 The pipeline is defined in `.specify/orchestrator.md`.
 Do not edit these files manually — use `/giveme:community` instead.
+
+## Secrets
+
+MCP credentials live in `giveme.env` (gitignored).
+Never commit this file.
 ```
 
 ---
@@ -221,9 +275,15 @@ Show a clear summary of what happened:
 
 *✅ Created: [list of files created]*
 *⏭️ Skipped: [list of files that already existed]*
+
+*MCPs status:*
+*✅ Jira — [configured / not configured]*
+*✅ GitHub — [configured / not configured]*
+
 *⚠️ Needs attention: [anything that couldn't be configured automatically]*
 
 *Next steps:*
+*→ Fill in your credentials in `giveme.env` if you haven't already*
 *→ Run `/giveme:community` to customize your standards interactively*
 *→ Or run `/giveme:run "[your intent]"` to generate your first feature"*
 
