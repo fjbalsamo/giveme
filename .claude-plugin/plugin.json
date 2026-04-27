@@ -1,0 +1,22 @@
+{
+  "name": "giveme",
+  "description": "Your codebase, your rules, enforced automatically. Turn a plain intent into a compliant PR — unattended.",
+  "version": "0.1.0",
+  "author": {
+    "name": "Franco Bálsamo",
+    "url": "https://github.com/fjbalsamo"
+  },
+  "homepage": "https://github.com/fjbalsamo/giveme",
+  "repository": "https://github.com/fjbalsamo/giveme",
+  "license": "MIT",
+  "keywords": [
+    "adr",
+    "spec-driven-development",
+    "architecture",
+    "guardrails",
+    "compliance",
+    "pipeline",
+    "nestjs",
+    "code-generation"
+  ]
+}
