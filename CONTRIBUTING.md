@@ -28,6 +28,10 @@ A few principles that guide every decision in this project:
 
 **Community playbooks are the floor, not the ceiling.** They represent solid defaults for a stack — not the one true way. Teams override them. That's expected and healthy.
 
+**Your guardrail lives in the dev's project, not in giveme.** When `/giveme:init` runs, it copies your guardrail into `.specify/playbook/` of the dev's repo. From that point, it belongs to them. They edit it, version it, and make it match their company's standards. Your contribution is the starting point — not the final word.
+
+This means: write guardrails that are correct for 80% of teams using that stack. Don't try to cover every edge case. The dev will customize the remaining 20%.
+
 **Less is more.** A playbook with 5 well-crafted guardrails is more valuable than one with 20 mediocre ones. Resist the urge to cover everything.
 
 ---

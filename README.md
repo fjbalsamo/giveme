@@ -86,6 +86,7 @@ The verify agent runs in a completely fresh session — no memory of what was im
 | `/giveme:run` | Runs the full pipeline from intent to PR, unattended |
 | `/giveme:community` | Interviews you about how you work, builds your custom playbook |
 | `/giveme:check` | Validates existing code against your current guardrails |
+| `/giveme:mcp-add` | Adds a new MCP integration — creates config, usage guide, and secrets template in `giveme.env` |
 
 ---
 
@@ -157,6 +158,54 @@ team (.specify/playbook/) > personal (~/.giveme/) > community (giveme/playbooks/
 ```
 
 Your team's decisions always override community defaults. Your personal style overrides community defaults when working solo. Community defaults fill the gaps when nothing else is defined.
+
+---
+
+## Your project, your rules
+
+When you run `/giveme:init`, giveme copies the community playbook into your
+project's `.specify/playbook/` directory. From that moment, those files
+belong to your project — not to giveme.
+
+```
+your-project/
+└── .specify/
+    ├── playbook/           ← your guardrails, versioned with your code
+    │   ├── 001-module-structure.md     ← edit freely
+    │   ├── 002-validation-contracts.md ← edit freely
+    │   └── ...
+    ├── orchestrator.md     ← your pipeline definition
+    └── constitution.md     ← your project standards
+```
+
+**giveme never overwrites files in `.specify/playbook/`.**
+If you run `/giveme:init` again, it skips files that already exist.
+Your edits are always preserved.
+
+This matters because two companies using NestJS can have completely
+different standards. One uses `winston`, the other uses the NestJS Logger.
+One requires optimistic locking everywhere, the other exempts read-heavy
+services. The community playbook is a starting point — your `.specify/`
+is the real thing.
+
+### Updating community defaults
+
+When giveme releases new or improved guardrails, they don't land in your
+project automatically. You choose when to update:
+
+```bash
+/giveme:init --update
+```
+
+This shows you a diff of what changed in the community playbook since
+you last initialized, and lets you accept changes file by file. You stay
+in control.
+
+### Committing `.specify/`
+
+`.specify/` should be committed to version control. It's part of your
+project — not a build artifact, not a secret. Your team reviews guardrail
+changes in PRs just like any other code change. That's the point.
 
 ---
 

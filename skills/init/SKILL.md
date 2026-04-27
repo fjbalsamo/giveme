@@ -149,6 +149,25 @@ If no existing standards → generate a minimal constitution:
 Copy the community guardrails from `playbooks/<stack>/` into `.specify/playbook/`.
 If a guardrail already exists in `.specify/playbook/`, skip it — never overwrite.
 
+When copying each guardrail, prepend this ownership header immediately
+after the `# Guardrail NNN — Title` line:
+
+```markdown
+<!--
+  Source: giveme community playbook (<stack>/NNN-<topic>.md)
+  Copied: <DATE>
+  Status: community default — edit freely to match your standards
+
+  This file belongs to your project. giveme reads it from .specify/playbook/
+  and will never overwrite it. Changes here affect only this project.
+  To see what changed in the community default, run /giveme:init --update
+-->
+```
+
+This header tells the dev where the file came from, when it was copied,
+and that it is theirs to own. It never gets updated — it's a timestamp,
+not a live reference.
+
 ### orchestrator.md
 
 ```markdown
@@ -291,5 +310,12 @@ Show a clear summary of what happened:
 
 ## Arguments
 
-`$ARGUMENTS` — optional stack name (e.g. `nestjs`, `springboot`, `golang`).
-If provided, skip stack detection and use this stack directly.
+`$ARGUMENTS` — optional stack name or flag:
+
+- `nestjs`, `springboot`, `golang`, etc. → skip stack detection, use this stack directly
+- `--update` → diff mode: compare each file in `.specify/playbook/` against the current
+  community default in `playbooks/<stack>/`. For each file that differs, show a summary
+  of what changed and ask: *"Accept this update? (yes / no / show diff)"*
+  Never auto-apply updates — always ask file by file.
+  Files that the dev edited beyond the community default are flagged as:
+  *"⚠️ This file has local edits. Accepting the update will merge — review carefully."*
