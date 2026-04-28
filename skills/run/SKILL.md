@@ -46,16 +46,65 @@ Set `$SPEC_DIR` = `specs/$TICKET/`
 **3. Load MCPs from giveme.env**
 
 Check for `giveme.env` in the project root.
-- If found → detect which MCPs are configured (check key presence, never read values):
-  - Jira keys present (`GIVEME_JIRA_URL`, `GIVEME_JIRA_EMAIL`, `GIVEME_JIRA_API_TOKEN`) → activate Jira MCP for Phase 1 (specify)
-  - GitHub keys present (`GIVEME_GITHUB_TOKEN`, `GIVEME_GITHUB_OWNER`, `GIVEME_GITHUB_REPO`) → activate GitHub MCP for Phase 5 (PR) and Phase 6 (issue)
-- If not found → run in plain text mode. Log: `[MCP] No giveme.env found — plain text mode`
 
-Read `.specify/orchestrator.md` `## MCPs active` section to confirm which MCPs the project expects.
-If a required MCP is listed in orchestrator.md but not configured in giveme.env → warn but continue:
-*"⚠️ Jira MCP not configured. Running without ticket enrichment."*
+**If `giveme.env` does not exist:**
 
-Log: `[MCP] Active: [list of active MCPs or "none"]`
+Read `.specify/orchestrator.md` `## MCPs active` section to know which
+MCPs this project expects. Then STOP the pipeline and say:
+
+---
+
+*"Before running the pipeline, you need to configure `giveme.env`.*
+
+*This project uses the following MCPs:*
+
+*[For each MCP listed in orchestrator.md, show exactly this block:]*
+
+**── Jira** *(enriches intent with ticket data)*
+```
+GIVEME_JIRA_URL=        # your instance — https://your-org.atlassian.net
+GIVEME_JIRA_EMAIL=      # your Atlassian email
+GIVEME_JIRA_API_TOKEN=  # get it at: https://id.atlassian.com/manage-profile/security/api-tokens
+```
+
+**── GitHub** *(opens PR automatically when pipeline completes)*
+```
+GIVEME_GITHUB_TOKEN=    # get it at: https://github.com/settings/tokens (scopes: repo, pull_requests)
+GIVEME_GITHUB_OWNER=    # your org or username
+GIVEME_GITHUB_REPO=     # this repository name
+```
+
+*I've created `giveme.env` with these placeholders. Fill in your
+credentials and run the same command again."*
+
+---
+
+Create `giveme.env` with the placeholders above — only for the MCPs
+the project actually uses, not all possible MCPs.
+Verify `giveme.env` is in `.gitignore` — add it if missing.
+Stop. Do not continue the pipeline.
+
+**If `giveme.env` exists:**
+
+Detect which MCPs are fully configured (check key presence, never read values):
+- Jira fully configured: `GIVEME_JIRA_URL`, `GIVEME_JIRA_EMAIL`, `GIVEME_JIRA_API_TOKEN` all present and non-empty placeholders
+- GitHub fully configured: `GIVEME_GITHUB_TOKEN`, `GIVEME_GITHUB_OWNER`, `GIVEME_GITHUB_REPO` all present and non-empty placeholders
+
+For each MCP listed in `orchestrator.md ## MCPs active` that is NOT fully configured:
+- Do NOT stop the pipeline
+- Log a warning and continue in degraded mode:
+
+```
+⚠️  Jira not configured — running without ticket enrichment.
+    Add GIVEME_JIRA_URL, GIVEME_JIRA_EMAIL, GIVEME_JIRA_API_TOKEN to giveme.env
+    to enable automatic ticket context.
+
+⚠️  GitHub not configured — PR will not be opened automatically.
+    Add GIVEME_GITHUB_TOKEN, GIVEME_GITHUB_OWNER, GIVEME_GITHUB_REPO to giveme.env
+    to enable automatic PR creation.
+```
+
+Log: `[MCP] Active: [list of fully configured MCPs or "none — degraded mode"]`
 
 **4. Check for existing spec**
 If `$SPEC_DIR` already exists → say:
