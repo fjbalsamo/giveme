@@ -87,6 +87,7 @@ The verify agent runs in a completely fresh session — no memory of what was im
 | `/giveme:community` | Interviews you about how you work, builds your custom playbook |
 | `/giveme:check` | Validates existing code against your current guardrails |
 | `/giveme:mcp-add` | Adds a new MCP integration — creates config, usage guide, and secrets template in `giveme.env` |
+| `/giveme:integrate` | Reads your existing AI instruction files and proposes specific additions to make giveme work better alongside them |
 
 ---
 
