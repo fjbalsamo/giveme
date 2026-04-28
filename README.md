@@ -124,6 +124,10 @@ giveme ships with community-curated guardrail sets for common stacks. When you r
 | Stack | Status |
 |---|---|
 | NestJS | ✅ available |
+| Backstage Plugin — Frontend | ✅ available |
+| Backstage Plugin — Backend REST | ✅ available |
+| Backstage Plugin — Backend Module | ✅ available |
+| Backstage Plugin — Maintenance | ✅ available |
 | Spring Boot | 🚧 coming soon |
 | Go | 🚧 coming soon |
 | Python CLI | 🚧 coming soon |
